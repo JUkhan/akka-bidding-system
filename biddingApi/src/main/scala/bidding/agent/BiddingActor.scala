@@ -63,7 +63,7 @@ class BiddingActor extends Actor with ActorLogging{
   // width and height if provided, otherwise fallback to min/max or min~max
   def findBanners(banners: List[Banner], imp: Option[List[Impression]]):List[BannerWithBidFloor]= {
     val _imp = imp.getOrElse(List())
-
+    // find banners with matching width and height  or fallback to min/max or min~max
     banners.foldLeft[List[BannerWithBidFloor]](List()) { (acc, el) =>
       val hasAny = _imp.find { impObj =>
 
@@ -105,10 +105,12 @@ class BiddingActor extends Actor with ActorLogging{
         }
         widthMatch && heightMatch
       }
-      hasAny match {
-        case Some(value) => BannerWithBidFloor(banner = el, bidFloor = value.bidFloor) :: acc
-        case None => acc
+      if (hasAny.isDefined) {
+        acc :+ BannerWithBidFloor(el, hasAny.get.bidFloor)
+      } else {
+        acc
       }
+
     }
   }
   val activeCampaigns = Seq(
