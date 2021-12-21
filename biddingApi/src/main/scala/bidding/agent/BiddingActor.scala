@@ -12,11 +12,11 @@ class BiddingActor extends Actor with ActorLogging{
       sender() ! msg
 
     case r : BidRequest=>
-      filterCampaigns( activeCampaigns, r, sender())
-
+      filterCampaigns(activeCampaigns, r)
 
   }
-  def filterCampaigns(campaigns:Seq[Campaign], bidRequest: BidRequest, sender:ActorRef)={
+
+  def filterCampaigns(campaigns:Seq[Campaign], bidRequest: BidRequest)={
     val filteredCampaigns=campaigns
       //filter by site ID
       .filter(cam=>cam.targeting.targetedSiteIds.contains(bidRequest.site.id))
