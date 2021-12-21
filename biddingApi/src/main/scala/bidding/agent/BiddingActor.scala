@@ -1,6 +1,6 @@
 package bidding.agent
-import akka.actor.{Actor, ActorLogging}
-
+import akka.actor.{Actor, ActorLogging, ActorRef}
+import bidding.agent.BiddingActor.activeCampaigns
 
 import scala.util.Random
 
@@ -11,53 +11,58 @@ class BiddingActor extends Actor with ActorLogging{
     case msg:String =>
       sender() ! msg
 
-    case BidRequest(id, imp, site, user, device)=>
+    case r : BidRequest=>
+      filterCampaigns( activeCampaigns, r, sender())
 
-      val filteredCampaigns=activeCampaigns
-        //filter by site ID
-        .filter(cam=>cam.targeting.targetedSiteIds.contains(site.id))
-        //filter by country giving higher priority on device.geo.country
-        .filter{cam=>
-          val _deviceCountry=device match {
-            case Some(value) => value.geo.flatMap(_.country)
-            case None =>None
-          }
-          val _userCountry = user match {
-            case Some(value) => value.geo.flatMap(_.country)
-            case None =>None
-          }
-          _deviceCountry match {
-            case Some(dc) => dc.equals(cam.country)
-            case None =>_userCountry match {
-              case Some(uc)=>uc.equals(cam.country)
-              case None => false
-            }
-          }
 
+  }
+  def filterCampaigns(campaigns:Seq[Campaign], bidRequest: BidRequest, sender:ActorRef)={
+    val filteredCampaigns=campaigns
+      //filter by site ID
+      .filter(cam=>cam.targeting.targetedSiteIds.contains(bidRequest.site.id))
+      //filter by country giving higher priority on device.geo.country
+      .filter{cam=>
+        val _deviceCountry=bidRequest.device match {
+          case Some(value) => value.geo.flatMap(_.country)
+          case None =>None
         }
-      filteredCampaigns match {
-        //sending none if no campaign found
-        case Nil => sender() ! None
-        case caps =>
-          val random = new Random
-          //select one campaign randomly
-          var resCap=caps(random.nextInt(caps.length))
-          findBanners(resCap.banners, imp) match {
-            //sending also none if no banner found
-            case Nil => sender() ! None
-            case banners=>
-              //select one banner randomly
-              val banner=banners(random.nextInt(banners.length))
-              //successfully sending bidding result
-              sender() ! Some(BidResponse(
-                id=site.id,
-                bidRequestId = id,
-                price = banner.bidFloor.getOrElse(0.0),
-                adid = Some(resCap.id.toString),
-                banner = Some(banner.banner)
-              ))
+        val _userCountry = bidRequest.user match {
+          case Some(value) => value.geo.flatMap(_.country)
+          case None =>None
+        }
+        _deviceCountry match {
+          case Some(dc) => dc.equals(cam.country)
+          case None =>_userCountry match {
+            case Some(uc)=>uc.equals(cam.country)
+            case None => false
           }
+        }
+
       }
+    filteredCampaigns match {
+      //sending none if no campaign found
+      case Nil => sender ! None
+      case caps =>
+        val random = new Random
+        //select one campaign randomly
+        var resCap = caps(random.nextInt(caps.length))
+
+        findBanners(resCap.banners, bidRequest.imp) match {
+          //sending also none if no banner found
+          case Nil => sender ! None
+          case banners =>
+            //select one banner randomly
+            val banner = banners(random.nextInt(banners.length))
+            //successfully sending bidding result
+            sender ! Some(BidResponse(
+              id = bidRequest.site.id,
+              bidRequestId = bidRequest.id,
+              price = banner.bidFloor.getOrElse(0.0),
+              adid = Some(resCap.id.toString),
+              banner = Some(banner.banner)
+            ))
+        }
+    }
   }
   //finding banners based on
   // width and height if provided, otherwise fallback to min/max or min~max
@@ -113,6 +118,10 @@ class BiddingActor extends Actor with ActorLogging{
 
     }
   }
+
+}
+
+object BiddingActor{
   val activeCampaigns = Seq(
     Campaign(
       id = 1,
