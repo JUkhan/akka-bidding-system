@@ -112,11 +112,8 @@ class BiddingActor extends Actor with ActorLogging{
         }
         widthMatch && heightMatch
       }
-      if (hasAny.isDefined) {
-        acc :+ BannerWithBidFloor(el, hasAny.get.bidFloor)
-      } else {
-        acc
-      }
+      if (hasAny.isDefined)
+        acc :+ BannerWithBidFloor(el, hasAny.get.bidFloor) else acc
 
     }
   }
