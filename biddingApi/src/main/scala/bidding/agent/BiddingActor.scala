@@ -7,6 +7,7 @@ import scala.util.Random
 case class BannerWithBidFloor(banner:Banner, bidFloor: Option[Double])
 
 class BiddingActor extends Actor with ActorLogging{
+
   override def receive: Receive = {
     case msg:String =>
       sender() ! msg
@@ -16,13 +17,14 @@ class BiddingActor extends Actor with ActorLogging{
 
   }
 
-  def filterCampaigns(campaigns:Seq[Campaign], bidRequest: BidRequest)={
+  private def filterCampaigns(campaigns:Seq[Campaign], bidRequest: BidRequest)={
     val filteredCampaigns=campaigns
       //filter by site ID
       .filter(cam=>cam.targeting.targetedSiteIds.contains(bidRequest.site.id))
       //filter by country giving higher priority on device.geo.country
       .filter{cam=>
-        val _deviceCountry=bidRequest.device match {
+
+         val _deviceCountry = bidRequest.device match {
           case Some(value) => value.geo.flatMap(_.country)
           case None =>None
         }
@@ -31,9 +33,9 @@ class BiddingActor extends Actor with ActorLogging{
           case None =>None
         }
         _deviceCountry match {
-          case Some(dc) => dc.equals(cam.country)
+          case Some(dc) => dc == cam.country
           case None =>_userCountry match {
-            case Some(uc)=>uc.equals(cam.country)
+            case Some(uc)=>uc == cam.country
             case None => false
           }
         }
@@ -66,7 +68,7 @@ class BiddingActor extends Actor with ActorLogging{
   }
   //finding banners based on
   // width and height if provided, otherwise fallback to min/max or min~max
-  def findBanners(banners: List[Banner], imp: Option[List[Impression]]):List[BannerWithBidFloor]= {
+  private def findBanners(banners: List[Banner], imp: Option[List[Impression]]):List[BannerWithBidFloor]= {
     val _imp = imp.getOrElse(List())
     // find banners with matching width and height  or fallback to min/max or min~max
     banners.foldLeft[List[BannerWithBidFloor]](List()) { (acc, el) =>
