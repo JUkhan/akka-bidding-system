@@ -30,4 +30,4 @@ post data
 
 ```
 
-`Validation Process:` BidRequest validation process is little bit challanging/lengthy. For the solution of validation process mostly i used `match pattern` and also `filter`, `map`, `flatMap`, `foldLeft` etc. Also I have added code comments before every logic implementation.
+`Validation Process:` BidRequest validation process is little bit challanging/lengthy. For the solution of validation process mostly i used `pattern matchin` and also `filter`, `map`, `flatMap`, `foldLeft` etc. Also I have added code comments before every logic implementation.
